@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Voice Activated Calculator</title>
+    <meta name="description" content="Professional voice-enabled calculator with advanced speech recognition, multiple themes, and comprehensive calculation history">
+    <meta name="keywords" content="voice calculator, speech calculator, accessibility calculator, advanced calculator">
+    <meta name="author" content="Voice Calculator App">
+
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+
+    <!-- PWA Meta Tags (manifest link kept for service worker, but manifest content will be minimal) -->
+    <meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1e293b" media="(prefers-color-scheme: dark)">
+    <link rel="manifest" href="/manifest.json">
+    <!-- Favicon and Apple Touch Icon references removed -->
+
+    <!-- Apple Specific (meta tags related to icons removed) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="VoiceCalc">
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/styles.css" as="style">
+    <link rel="preload" href="/script.js" as="script">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Voice Calculator",
+        "description": "Advanced voice-enabled calculator with speech recognition",
+        "applicationCategory": "UtilityApplication",
+        "operatingSystem": "Any",
+        "offers": {
+            "@type": "Offer",
+            "price": "0"
+        }
+    }
+    </script>
+</head>
+
+<body class="theme-dark" data-theme="dark">
+    <!-- Skip Navigation Link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Header -->
+    <header class="header" role="banner">
+        <div class="header-content">
+            <h1 class="app-title">
+                <span class="voice-icon" role="img" aria-label="Microphone">🎤</span>
+                Voice Calculator
+            </h1>
+            <nav class="header-nav" role="navigation" aria-label="Main navigation">
+                <button class="btn-icon" id="themeToggle" title="Toggle Theme" aria-label="Toggle between light and dark theme">
+                    <span class="theme-icon" role="img" aria-label="Theme toggle">🌙</span>
+                </button>
+                <button class="btn-icon" id="settingsBtn" title="Settings" aria-label="Open settings">
+                    <span class="settings-icon" role="img" aria-label="Settings">⚙️</span>
+                </button>
+                <button class="btn-icon" id="historyBtn" title="History" aria-label="Open calculation history">
+                    <span class="history-icon" role="img" aria-label="History">📊</span>
+                </button>
+                <button class="btn-icon" id="fullscreenBtn" title="Fullscreen" aria-label="Toggle fullscreen mode">
+                    <span class="fullscreen-icon" role="img" aria-label="Fullscreen">⛶</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Calculator Interface -->
+    <main class="main-container" id="main-content" role="main">
+        <!-- Calculator Display -->
+        <section class="calculator-display" aria-label="Calculator display">
+            <div class="display-container">
+                <div class="expression-display" id="expressionDisplay" aria-label="Current expression" role="status">0</div>
+                <div class="result-display" id="resultDisplay" aria-label="Calculation result" role="status" aria-live="polite">0</div>
+                <div class="voice-feedback" id="voiceFeedback" aria-label="Voice feedback" role="status" aria-live="polite"></div>
+                <div class="calculation-info" id="calculationInfo">
+                    <span class="operation-count">Operations: <span id="operationCount">0</span></span>
+                    <span class="last-updated">Last: <span id="lastUpdated">Never</span></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Voice Controls -->
+        <section class="voice-controls" aria-label="Voice input controls">
+            <div class="voice-status" id="voiceStatus">
+                <div class="status-indicator" id="statusIndicator" aria-hidden="true"></div>
+                <span class="status-text" id="statusText" role="status" aria-live="polite">Ready to listen</span>
+                <div class="voice-level" id="voiceLevel" aria-label="Voice input level">
+                    <div class="level-bar" id="levelBar"></div>
+                </div>
+            </div>
+
+            <div class="voice-buttons">
+                <button class="voice-btn primary" id="voiceBtn" aria-label="Start voice input">
+                    <span class="mic-icon" id="micIcon" role="img" aria-label="Microphone">🎤</span>
+                    <span class="btn-text">Speak</span>
+                    <kbd class="shortcut">Space</kbd>
+                </button>
+                <button class="voice-btn secondary" id="clearVoiceBtn" aria-label="Clear voice input">
+                    <span class="clear-icon" role="img" aria-label="Clear">🗑️</span>
+                    <span class="btn-text">Clear</span>
+                    <kbd class="shortcut">Esc</kbd>
+                </button>
+                <button class="voice-btn tertiary" id="repeatBtn" aria-label="Repeat last result">
+                    <span class="repeat-icon" role="img" aria-label="Repeat">🔄</span>
+                    <span class="btn-text">Repeat</span>
+                    <kbd class="shortcut">R</kbd>
+                </button>
+            </div>
+
+            <div class="voice-visualization" id="voiceVisualization" aria-hidden="true">
+                <div class="sound-wave">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                </div>
+            </div>
+
+            <!-- Voice Commands Help -->
+            <details class="voice-help">
+                <summary class="voice-help-toggle">Voice Commands</summary>
+                <div class="voice-help-content">
+                    <div class="help-grid">
+                        <div class="help-section">
+                            <h4>Basic Operations</h4>
+                            <ul>
+                                <li>"5 plus 3" or "5 + 3"</li>
+                                <li>"10 minus 4" or "10 - 4"</li>
+                                <li>"6 times 7" or "6 × 7"</li>
+                                <li>"20 divided by 4" or "20 ÷ 4"</li>
+                            </ul>
+                        </div>
+                        <div class="help-section">
+                            <h4>Advanced Functions</h4>
+                            <ul>
+                                <li>"Square root of 16"</li>
+                                <li>"5 squared" or "5 to the power of 2"</li>
+                                <li>"Sine of 30 degrees"</li>
+                                <li>"Log of 100"</li>
+                            </ul>
+                        </div>
+                        <div class="help-section">
+                            <h4>Commands</h4>
+                            <ul>
+                                <li>"Clear" - Clear display</li>
+                                <li>"Equals" - Calculate result</li>
+                                <li>"Repeat" - Speak last result</li>
+                                <li>"History" - Open history</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </section>
+
+        <!-- Manual Calculator -->
+        <section class="manual-calculator" aria-label="Manual calculator keypad">
+            <div class="calculator-header">
+                <h3>Calculator Keypad</h3>
+                <button class="minimize-btn" id="minimizeCalc" aria-label="Minimize calculator">−</button>
+            </div>
+            <div class="calculator-grid" role="grid" aria-label="Calculator buttons">
+                <!-- Memory Functions -->
+                <button class="calc-btn memory" data-action="memory-clear" aria-label="Memory clear">MC</button>
+                <button class="calc-btn memory" data-action="memory-recall" aria-label="Memory recall">MR</button>
+                <button class="calc-btn memory" data-action="memory-add" aria-label="Memory add">M+</button>
+                <button class="calc-btn memory" data-action="memory-subtract" aria-label="Memory subtract">M−</button>
+
+                <!-- Row 1 -->
+                <button class="calc-btn function" data-action="clear" aria-label="Clear all">C</button>
+                <button class="calc-btn function" data-action="clear-entry" aria-label="Clear entry">CE</button>
+                <button class="calc-btn function" data-action="backspace" aria-label="Backspace">⌫</button>
+                <button class="calc-btn operator" data-value="/" aria-label="Divide">÷</button>
+
+                <!-- Row 2 -->
+                <button class="calc-btn number" data-value="7" aria-label="Seven">7</button>
+                <button class="calc-btn number" data-value="8" aria-label="Eight">8</button>
+                <button class="calc-btn number" data-value="9" aria-label="Nine">9</button>
+                <button class="calc-btn operator" data-value="*" aria-label="Multiply">×</button>
+
+                <!-- Row 3 -->
+                <button class="calc-btn number" data-value="4" aria-label="Four">4</button>
+                <button class="calc-btn number" data-value="5" aria-label="Five">5</button>
+                <button class="calc-btn number" data-value="6" aria-label="Six">6</button>
+                <button class="calc-btn operator" data-value="+" aria-label="Add">+</button>
+
+                <!-- Row 4 -->
+                <button class="calc-btn number" data-value="1" aria-label="One">1</button>
+                <button class="calc-btn number" data-value="2" aria-label="Two">2</button>
+                <button class="calc-btn number" data-value="3" aria-label="Three">3</button>
+                <button class="calc-btn operator" data-value="-" aria-label="Subtract">−</button>
+
+                <!-- Row 5 -->
+                <button class="calc-btn function" data-action="sign-toggle" aria-label="Plus/Minus">±</button>
+                <button class="calc-btn number" data-value="0" aria-label="Zero">0</button>
+                <button class="calc-btn number" data-value="." aria-label="Decimal point">.</button>
+                <button class="calc-btn equals" data-action="calculate" aria-label="Equals">=</button>
+            </div>
+        </section>
+
+        <!-- Advanced Functions -->
+        <section class="advanced-functions" id="advancedFunctions" aria-label="Advanced mathematical functions">
+            <button class="toggle-advanced" id="toggleAdvanced" aria-expanded="false" aria-controls="advancedGrid">
+                <span>Advanced Functions</span>
+                <span class="toggle-icon" aria-hidden="true">▼</span>
+            </button>
+
+            <div class="advanced-grid" id="advancedGrid" aria-hidden="true">
+                <div class="function-category">
+                    <h4>Basic Functions</h4>
+                    <div class="function-row">
+                        <button class="calc-btn function" data-function="sqrt" aria-label="Square root">√</button>
+                        <button class="calc-btn function" data-function="power" aria-label="Power of 2">x²</button>
+                        <button class="calc-btn function" data-function="power-n" aria-label="Power of n">xⁿ</button>
+                        <button class="calc-btn function" data-function="reciprocal" aria-label="Reciprocal">1/x</button>
+                    </div>
+                </div>
+
+                <div class="function-category">
+                    <h4>Logarithmic</h4>
+                    <div class="function-row">
+                        <button class="calc-btn function" data-function="log" aria-label="Logarithm base 10">log</button>
+                        <button class="calc-btn function" data-function="ln" aria-label="Natural logarithm">ln</button>
+                        <button class="calc-btn function" data-function="log2" aria-label="Logarithm base 2">log₂</button>
+                        <button class="calc-btn function" data-function="exp" aria-label="Exponential">eˣ</button>
+                    </div>
+                </div>
+
+                <div class="function-category">
+                    <h4>Trigonometric</h4>
+                    <div class="function-row">
+                        <button class="calc-btn function" data-function="sin" aria-label="Sine">sin</button>
+                        <button class="calc-btn function" data-function="cos" aria-label="Cosine">cos</button>
+                        <button class="calc-btn function" data-function="tan" aria-label="Tangent">tan</button>
+                        <button class="calc-btn function" data-function="deg-rad" aria-label="Degrees/Radians toggle">DEG</button>
+                    </div>
+                </div>
+
+                <div class="function-category">
+                    <h4>Constants</h4>
+                    <div class="function-row">
+                        <button class="calc-btn function" data-function="pi" aria-label="Pi constant">π</button>
+                        <button class="calc-btn function" data-function="e" aria-label="Euler's number">e</button>
+                        <button class="calc-btn function" data-function="rand" aria-label="Random number">RND</button>
+                        <button class="calc-btn function" data-function="factorial" aria-label="Factorial">n!</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="quick-actions" aria-label="Quick action buttons">
+            <div class="action-grid">
+                <button class="action-btn" id="copyResultBtn" aria-label="Copy result to clipboard">
+                    <span class="action-icon">📋</span>
+                    <span>Copy Result</span>
+                </button>
+                <button class="action-btn" id="shareBtn" aria-label="Share calculation">
+                    <span class="action-icon">📤</span>
+                    <span>Share</span>
+                </button>
+                <button class="action-btn" id="printBtn" aria-label="Print calculation">
+                    <span class="action-icon">🖨️</span>
+                    <span>Print</span>
+                </button>
+                <button class="action-btn" id="helpBtn" aria-label="Open help">
+                    <span class="action-icon">❓</span>
+                    <span>Help</span>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- History Panel -->
+    <aside class="history-panel" id="historyPanel" role="complementary" aria-label="Calculation history">
+        <div class="panel-header">
+            <h3>Calculation History</h3>
+            <div class="panel-controls">
+                <button class="btn-icon" id="searchHistoryBtn" title="Search History" aria-label="Search calculation history">
+                    <span>🔍</span>
+                </button>
+                <button class="btn-icon" id="exportHistoryBtn" title="Export History" aria-label="Export history to file">
+                    <span>📤</span>
+                </button>
+                <button class="btn-icon" id="clearHistoryBtn" title="Clear History" aria-label="Clear all history">
+                    <span>🗑️</span>
+                </button>
+                <button class="btn-icon" id="closeHistoryBtn" title="Close" aria-label="Close history panel">
+                    <span>✕</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="history-search" id="historySearch">
+            <input type="search"
+                   id="historySearchInput"
+                   placeholder="Search calculations..."
+                   aria-label="Search history"
+                   autocomplete="off">
+            <button class="search-clear" id="clearSearchBtn" aria-label="Clear search">✕</button>
+        </div>
+
+        <div class="history-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="voice">Voice</button>
+            <button class="filter-btn" data-filter="manual">Manual</button>
+            <button class="filter-btn" data-filter="advanced">Advanced</button>
+        </div>
+
+        <div class="history-content" id="historyContent">
+            <div class="history-empty">
+                <span class="empty-icon" role="img" aria-label="Empty history">📝</span>
+                <p>No calculations yet</p>
+                <button class="try-example-btn" id="tryExampleBtn">Try Example</button>
+            </div>
+        </div>
+
+        <div class="history-stats" id="historyStats">
+            <div class="stat-item">
+                <span class="stat-label">Total:</span>
+                <span class="stat-value" id="totalCalculations">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Today:</span>
+                <span class="stat-value" id="todayCalculations">0</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal" role="dialog" aria-labelledby="settingsTitle" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="settingsTitle">Settings</h3>
+                <button class="btn-icon close-modal" id="closeSettingsBtn" aria-label="Close settings">
+                    <span>✕</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-tabs">
+                    <button class="tab-btn active" data-tab="general">General</button>
+                    <button class="tab-btn" data-tab="voice">Voice</button>
+                    <button class="tab-btn" data-tab="display">Display</button>
+                    <button class="tab-btn" data-tab="advanced">Advanced</button>
+                </div>
+
+                <div class="tab-content active" id="general-tab">
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Theme</span>
+                            <select id="themeSelect" class="setting-select" aria-label="Select theme">
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                                <option value="auto">Auto (System)</option>
+                                <option value="high contrast">High Contrast</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Sound Effects</span>
+                            <input type="checkbox" id="soundEffectsToggle" checked aria-describedby="soundEffectsDesc">
+                            <span class="checkbox-slider"></span>
+                        </label>
+                        <small id="soundEffectsDesc" class="setting-description">Play sounds for button clicks and voice feedback</small>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Auto-save History</span>
+                            <input type="checkbox" id="autoSaveToggle" checked aria-describedby="autoSaveDesc">
+                            <span class="checkbox-slider"></span>
+                        </label>
+                        <small id="autoSaveDesc" class="setting-description">Automatically save calculations to history</small>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="voice-tab">
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Voice Feedback</span>
+                            <input type="checkbox" id="voiceFeedbackToggle" checked aria-describedby="voiceFeedbackDesc">
+                            <span class="checkbox-slider"></span>
+                        </label>
+                        <small id="voiceFeedbackDesc" class="setting-description">Enable text-to-speech for results</small>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Auto-speak Results</span>
+                            <input type="checkbox" id="autoSpeakToggle" checked aria-describedby="autoSpeakDesc">
+                            <span class="checkbox-slider"></span>
+                        </label>
+                        <small id="autoSpeakDesc" class="setting-description">Automatically speak calculation results</small>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Voice Language</span>
+                            <select id="voiceLanguageSelect" class="setting-select" aria-label="Select voice language">
+                                <option value="en-US">English (US)</option>
+                                <option value="en-GB">English (UK)</option>
+                                <option value="es-ES">Spanish</option>
+                                <option value="fr-FR">French</option>
+                                <option value="de-DE">German</option>
+                                <option value="it-IT">Italian</option>
+                                <option value="pt-BR">Portuguese (Brazil)</option>
+                                <option value="zh-CN">Chinese (Simplified)</option>
+                                <option value="ja-JP">Japanese</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Voice Speed</span>
+                            <input type="range" id="voiceSpeedSlider" min="0.5" max="2" step="0.1" value="1" class="setting-slider" aria-label="Voice speed">
+                            <span class="slider-value" id="voiceSpeedValue">1.0x</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="display-tab">
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Decimal Places</span>
+                            <input type="range" id="decimalPlacesSlider" min="0" max="10" value="2" class="setting-slider" aria-label="Number of decimal places">
+                            <span class="slider-value" id="decimalPlacesValue">2</span>
+                        </label>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Number Format</span>
+                            <select id="numberFormatSelect" class="setting-select" aria-label="Select number format">
+                                <option value="standard">Standard (1,234.56)</option>
+                                <option value="scientific">Scientific (1.23E+3)</option>
+                                <option value="engineering">Engineering (1.234K)</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Large Display</span>
+                            <input type="checkbox" id="largeDisplayToggle" aria-describedby="largeDisplayDesc">
+                            <span class="checkbox-slider"></span>
+                        </label>
+                        <small id="largeDisplayDesc" class="setting-description">Use larger fonts for better visibility</small>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="advanced-tab">
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Angle Unit</span>
+                            <select id="angleUnitSelect" class="setting-select" aria-label="Select angle unit">
+                                <option value="degrees">Degrees</option>
+                                <option value="radians">Radians</option>
+                                <option value="gradians">Gradians</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Memory Persistence</span>
+                            <input type="checkbox" id="memoryPersistenceToggle" checked aria-describedby="memoryPersistenceDesc">
+                            <span class="checkbox-slider"></span>
+                        </label>
+                        <small id="memoryPersistenceDesc" class="setting-description">Remember calculator memory between sessions</small>
+                    </div>
+
+                    <div class="setting-group">
+                        <button class="btn-secondary full-width" id="resetSettingsBtn">
+                            Reset to Defaults
+                        </button>
+                    </div>
+
+                    <div class="setting-group">
+                        <button class="btn-secondary full-width" id="exportSettingsBtn">
+                            Export Settings
+                        </button>
+                    </div>
+
+                    <div class="setting-group">
+                        <input type="file" id="importSettingsInput" accept=".json" class="hidden">
+                        <button class="btn-secondary full-width" id="importSettingsBtn">
+                            Import Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal-overlay" id="helpModal" role="dialog" aria-labelledby="helpTitle" aria-modal="true">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="helpTitle">Help & Documentation</h3>
+                <button class="btn-icon close-modal" id="closeHelpBtn" aria-label="Close help">
+                    <span>✕</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="help-content">
+                    <!-- Help content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Elements -->
+    <audio id="ttsAudio" preload="none" aria-hidden="true"></audio>
+    <audio id="clickSound" preload="auto" aria-hidden="true">
+        <source src="/static/voice/click.mp3" type="audio/mpeg">
+        <source src="/static/voice/click.ogg" type="audio/ogg">
+    </audio>
+    <audio id="errorSound" preload="auto" aria-hidden="true">
+        <source src="/static/voice/error.mp3" type="audio/mpeg">
+        <source src="/static/voice/error.ogg" type="audio/ogg">
+    </audio>
+
+    <!-- Loading Spinner -->
+    <div class="loading-overlay" id="loadingOverlay" aria-hidden="true">
+        <div class="loading-spinner">
+            <div class="spinner" aria-hidden="true"></div>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+
+    <!-- Scripts -->
+    <script src="/script.js"></script>
+</body>
+</html>

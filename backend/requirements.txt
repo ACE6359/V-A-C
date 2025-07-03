@@ -1,0 +1,9 @@
+Flask
+Flask-CORS
+pyttsx3
+gTTS
+SpeechRecognition
+PyAudio
+mysql-connector-python
+python-dotenv
+gunicorn
